@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple v1 — OPL COV &amp; LGO</title>
+<style>
+:root{
+  --bg:#000000;
+  --card:#0b0b0b;
+  --card2:#141414;
+  --text:#f2f2f2;
+  --dim:#8c8c8c;
+  --accent:#ffffff;
+  --accent2:#222222;
+  --border:#262626;
+  --ok:#4caf50;
+  --er:#ef5350;
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:900px;margin-inline:auto}
+h1{font-size:22px;font-weight:600;margin:0 0 14px;letter-spacing:.3px}
+h1 span{color:var(--dim);font-weight:400;font-size:14px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{flex:1}
+.tabs button.on{background:var(--accent);color:#000;border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card h3{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin:0 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+button,input,select{font:inherit;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+button{cursor:pointer;font-weight:600}
+button:hover{background:var(--accent2);border-color:#444}
+button.primary{background:var(--accent);border-color:var(--accent);color:#000}
+button.primary:hover{background:#dcdcdc}
+button.sec{background:transparent}
+button.tiny{padding:4px 9px;font-size:12px;border-radius:6px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.row:last-child{margin-bottom:0}
+.row>input[type=text],.row>input:not([type]){flex:1;min-width:150px}
+label{color:var(--dim);font-size:12px;display:block;margin-bottom:4px;font-weight:600}
+small{color:var(--dim);font-size:12px}
+.log{color:var(--dim);font-size:13px;min-height:18px;margin:8px 0 0}
+.log.er{color:var(--er)} .log.ok{color:var(--ok)}
+.hide{display:none!important}
+.slot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border)}
+.slot:last-child{border-bottom:none}
+.slot .n{width:200px;font-size:13px;display:flex;align-items:center;gap:6px;margin:0;color:var(--text);cursor:pointer}
+.slot .n b{color:var(--accent)}
+.slot canvas{max-width:180px;max-height:110px;background:#fff;border-radius:6px;border:1px solid var(--border)}
+.slot input[type=file]{flex:1;min-width:140px;max-width:260px;font-size:12px;color:var(--dim)}
+.slot.drag{background:#181818;border-radius:8px}
+.range-box{background:var(--card2);padding:8px 12px;border-radius:8px;border:1px solid var(--border);flex:1;min-width:130px}
+.range-box input[type=range]{width:100%;padding:0;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent)}
+</style>
+</head>
+<body>
+<h1>Simple v1 <span>— OPL COV &amp; LGO</span></h1>
+
+<div class="tabs">
+  <button id="tArt" class="on" onclick="aba('art')">🎨 Conversor de Arte</button>
+  <button id="tApps" onclick="aba('apps')">📦 Criador de APPS</button>
+</div>
+
+<div class="card">
+  <div class="row">
+    <button class="primary" onclick="escolherRaiz()">📁 Pasta do OPL</button>
+    <button class="sec" onclick="escolherArt()">Trocar ART</button>
+    <small id="pastaInfo">Nenhuma pasta selecionada (modo download direto).</small>
+  </div>
+  <div id="log" class="log"></div>
+</div>
+
+<!-- ================= CONVERSOR DE ARTE ================= -->
+<section id="secArt">
+  <div class="card">
+    <h3>Configuração</h3>
+    <div class="row">
+      <div><label>Alvo</label>
+        <select id="alvoTipo" onchange="mudarAlvo()"><option value="jogo">Jogo</option><option value="app">APP</option></select></div>
+      <div style="flex:1;min-width:190px"><label id="lblAlvo">Jogo</label>
+        <select id="jogoSel" style="width:100%" onchange="if(this.value)$('gid').value=(alvoAtual==='app'?this.value:this.value.toUpperCase())"><option value="">— selecione —</option></select></div>
+      <div><label>ID / Nome</label>
+        <input id="gid" placeholder="SLUS_200.62" size="14" oninput="this.value=(alvoAtual==='app'?this.value.trim():this.value.toUpperCase().trim())"></div>
+      <div><label>Ajuste</label>
+        <select id="fit" onchange="renderTudo()"><option value="cover">Preencher</option><option value="contain">Caber</option><option value="stretch">Esticar</option></select></div>
+    </div>
+
+    <div class="row">
+      <div style="flex:1;min-width:200px"><label>Imagem padrão (COV e LGO)</label>
+        <input type="file" accept="image/*" onchange="setImg('*',this.files[0])"></div>
+      <div>
+        <label>Label COV</label>
+        <div class="row" style="margin:0;gap:6px">
+          <select id="covLabelTipo" onchange="render('COV')">
+            <option value="none">Sem label</option>
+            <option value="ps2">PLAYSTATION 2</option>
+            <option value="ps1">PLAYSTATION 1</option>
+            <option value="apps">APLICATIVOS</option>
+          </select>
+          <select id="ps2Pos" onchange="render('COV')">
+            <option value="top">Topo</option>
+            <option value="bottom">Base</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="range-box"><label>Zoom: <span id="lblZoom">100%</span></label>
+        <input type="range" id="imgZoom" min="50" max="200" value="100" oninput="$('lblZoom').textContent=this.value+'%';renderTudo()"></div>
+      <div class="range-box"><label>X: <span id="lblOffX">0px</span></label>
+        <input type="range" id="imgOffX" min="-150" max="150" value="0" oninput="$('lblOffX').textContent=this.value+'px';renderTudo()"></div>
+      <div class="range-box"><label>Y: <span id="lblOffY">0px</span></label>
+        <input type="range" id="imgOffY" min="-150" max="150" value="0" oninput="$('lblOffY').textContent=this.value+'px';renderTudo()"></div>
+      <button class="sec tiny" onclick="resetEnquadramento()">↺ Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>COV &amp; LOGO</h3>
+    <div id="slots"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" onclick="salvarConv()">💾 Salvar</button>
+    </div>
+    <div id="logArt" class="log"></div>
+  </div>
+</section>
+
+<!-- ================= CRIADOR DE APPS ================= -->
+<section id="secApps" class="hide">
+  <div class="card">
+    <h3>Criar APP</h3>
+    <div class="row">
+      <div style="flex:1"><label>Arquivo .ELF</label><input type="file" id="elfFile" accept=".elf"></div>
+      <div style="flex:1"><label>Nome do APP</label><input id="appNome" placeholder="Opcional"></div>
+    </div>
+    <div class="row">
+      <div style="flex:1"><label>argv1 (opcional)</label><input id="appArgv" placeholder="ex.: -dvd=mass:CD/jogo.iso"></div>
+      <button class="primary" onclick="adicionarApp()">➕ Criar APP</button>
+    </div>
+    <div id="logApp" class="log"></div>
+  </div>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+const el=(id,m,c='')=>{const e=$(id);if(e){e.textContent=m;e.className='log '+c}};
+const log=(m,c='')=>el('log',m,c);
+
+let raiz=null, artDir=null, jogos=[], appsInfo=[], alvoAtual='jogo';
+const imgs={};
+
+const TIPOS={
+  COV:['Capa Frontal',140,200],
+  LGO:['Logo',300,125]
+};
+
+function aba(n){
+  $('secArt').classList.toggle('hide',n!=='art');
+  $('secApps').classList.toggle('hide',n!=='apps');
+  $('tArt').classList.toggle('on',n==='art');
+  $('tApps').classList.toggle('on',n==='apps');
+}
+
+async function writeFile(dir,name,data){
+  const f=await dir.getFileHandle(name,{create:true});
+  const w=await f.createWritable();
+  await w.write(data);
+  await w.close();
+}
+
+async function escolherArt(){
+  if(!window.showDirectoryPicker)return log('Use Chrome/Edge no PC.','er');
+  try{
+    artDir=await showDirectoryPicker({mode:'readwrite'});
+    $('pastaInfo').textContent='ART: '+artDir.name;
+    log('Pasta ART definida.','ok');
+  }catch(e){}
+}
+
+async function escolherRaiz(){
+  if(!window.showDirectoryPicker)return log('Use Chrome/Edge no PC.','er');
+  try{raiz=await showDirectoryPicker({mode:'readwrite'})}catch(e){return}
+  for(const p of ['ART','APPS','CD','DVD']){try{await raiz.getDirectoryHandle(p,{create:true})}catch(e){}}
+  artDir=await raiz.getDirectoryHandle('ART',{create:true});
+  $('pastaInfo').textContent=`${raiz.name} → ART / APPS`;
+  const arqs=[];await varrer(raiz,0,arqs);
+  jogos=[];
+  for(let i=0;i<arqs.length;i++){
+    log(`Lendo jogos… ${i+1}/${arqs.length}`);
+    try{
+      const f=await arqs[i].getFile();
+      const info=await descobrirId(f);
+      if(info&&info.id) jogos.push({id:info.id,nome:info.nomeReal||f.name.replace(/\.(iso|zso)$/i,''),arq:f.name});
+    }catch(e){}
+  }
+  jogos.sort((a,b)=>a.nome.localeCompare(b.nome));
+  await lerApps();atualizarSeletor();
+  log(`${jogos.length} jogo(s) e ${appsInfo.length} app(s) encontrados.`,'ok');
+}
+
+async function varrer(dir,prof,out){
+  for await(const [n,h] of dir.entries()){
+    if(h.kind==='directory'){
+      if(prof<3 && !/^(ART|CFG|THM|VMC|APPS|LNG|CHT|_BACKUP)$/i.test(n)) await varrer(h,prof+1,out);
+    }else if(/\.(iso|zso)$/i.test(n)) out.push(h);
+  }
+}
+
+async function descobrirId(f){
+  let m=f.name.match(/([A-Z]{4})[_-](\d{3})\.?(\d{2})/i);
+  if(/\.iso$/i.test(f.name)){
+    try{
+      const rd=async(o,l)=>new DataView(await f.slice(o,o+l).arrayBuffer());
+      const pvd=await rd(0x8000,2048);
+      if(String.fromCharCode(...[1,2,3,4,5].map(i=>pvd.getUint8(i)))==='CD001'){
+        const lba=pvd.getUint32(158,true),sz=pvd.getUint32(166,true);
+        const d=await rd(lba*2048,Math.min(sz,65536));let o=0;
+        while(o+33<d.byteLength){
+          const len=d.getUint8(o);if(!len){o=(Math.floor(o/2048)+1)*2048;continue}
+          const nl=d.getUint8(o+32);let nome='';
+          for(let i=0;i<nl;i++) nome+=String.fromCharCode(d.getUint8(o+33+i));
+          if(/^SYSTEM\.CNF/i.test(nome)){
+            const l2=d.getUint32(o+2,true),s2=d.getUint32(o+10,true);
+            const t=new TextDecoder().decode(await f.slice(l2*2048,l2*2048+Math.min(s2,2048)).arrayBuffer());
+            const idM=t.match(/([A-Z]{4})[_-](\d{3})\.?(\d{2})/i);
+            const titM=t.match(/TITLE\s*=\s*(.+)/i);
+            if(idM) return {id:`${idM[1]}_${idM[2]}.${idM[3]}`.toUpperCase(),nomeReal:titM?titM[1].trim():null};
+          }
+          o+=len;
+        }
+      }
+    }catch(e){}
+  }
+  return m?{id:`${m[1]}_${m[2]}.${m[3]}`.toUpperCase(),nomeReal:null}:null;
+}
+
+function chaveArtApp(a){return (a.boot||a.pasta||'').trim()}
+
+function mudarAlvo(){
+  alvoAtual=$('alvoTipo').value;
+  $('gid').value='';
+  if(alvoAtual==='jogo'){$('lblAlvo').textContent='Jogo';$('gid').placeholder='SLUS_200.62';atualizarSeletor()}
+  else{
+    $('lblAlvo').textContent='APP';$('gid').placeholder='BOOT.ELF';
+    $('jogoSel').innerHTML='<option value="">— selecione —</option>'+appsInfo.map(a=>{
+      const c=chaveArtApp(a);return `<option value="${c}">${a.titulo} (${a.boot||a.pasta})</option>`;
+    }).join('');
+  }
+}
+
+function atualizarSeletor(){
+  if(alvoAtual!=='jogo')return mudarAlvo();
+  $('jogoSel').innerHTML='<option value="">— selecione —</option>'+jogos.map(j=>`<option value="${j.id}">${j.nome||j.arq} (${j.id})</option>`).join('');
+}
+
+$('slots').innerHTML=Object.entries(TIPOS).map(([k,v])=>`
+  <div class="slot" id="slot_${k}" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');const f=event.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))setImg('${k}',f)">
+    <label class="n"><input type="checkbox" id="c_${k}"> <b>${k}</b> <small>${v[0]} (${v[1]}x${v[2]})</small></label>
+    <input type="file" accept="image/*" onchange="setImg('${k}',this.files[0])">
+    <canvas id="v_${k}" width="${v[1]}" height="${v[2]}"></canvas>
+  </div>`).join('');
+
+async function setImg(k,f){
+  if(!f)delete imgs[k];else{imgs[k]=await createImageBitmap(f);if(k!=='*')$('c_'+k).checked=true}
+  k==='*'?renderTudo():render(k);
+}
+
+function resetEnquadramento(){
+  $('imgZoom').value=100;$('lblZoom').textContent='100%';
+  $('imgOffX').value=0;$('lblOffX').textContent='0px';
+  $('imgOffY').value=0;$('lblOffY').textContent='0px';
+  renderTudo();
+}
+
+function desenharNoContexto(ctx,img,W,H,fit,tipo){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  if(img){
+    const zoom=Number($('imgZoom').value)/100;
+    const offX=Number($('imgOffX').value)*(W/140);
+    const offY=Number($('imgOffY').value)*(H/200);
+    ctx.imageSmoothingQuality='high';
+    if(fit==='stretch'){
+      const dw=W*zoom,dh=H*zoom;
+      ctx.drawImage(img,(W-dw)/2+offX,(H-dh)/2+offY,dw,dh);
+    }else{
+      const s=(fit==='cover'?Math.max:Math.min)(W/img.width,H/img.height)*zoom;
+      const dw=img.width*s,dh=img.height*s;
+      ctx.drawImage(img,(W-dw)/2+offX,(H-dh)/2+offY,dw,dh);
+    }
+  }
+  if(tipo==='COV'&&$('covLabelTipo').value!=='none'){
+    const map={ps2:'PLAYSTATION 2',ps1:'PLAYSTATION 1',apps:'APLICATIVOS'};
+    const texto=map[$('covLabelTipo').value];
+    const barH=Math.max(18,Math.round(H*0.125));
+    const y=$('ps2Pos').value==='bottom'?H-barH:0;
+    ctx.save();
+    ctx.fillStyle='#000000';ctx.fillRect(0,y,W,barH);
+    ctx.fillStyle='#ffffff';ctx.font=`700 ${Math.max(9,Math.round(barH*0.48))}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(texto,W/2,y+barH/2,W-8);
+    ctx.restore();
+  }
+}
+
+function render(k){
+  const t=TIPOS[k],W=t[1],H=t[2],img=imgs[k]||imgs['*'];
+  const cv=$('v_'+k);cv.width=W;cv.height=H;
+  desenharNoContexto(cv.getContext('2d'),img,W,H,$('fit').value,k);
+}
+function renderTudo(){Object.keys(TIPOS).forEach(render)}
+
+async function salvarConv(){
+  const raw=$('gid').value.trim();
+  const id=alvoAtual==='jogo'?raw.toUpperCase():raw;
+  if(alvoAtual==='jogo'&&!/^[A-Z]{4}_\d{3}\.\d{2}$/.test(id))return el('logArt','Código inválido.','er');
+  if(!id)return el('logArt','Informe o alvo.','er');
+  const lista=Object.keys(TIPOS).filter(k=>$('c_'+k).checked&&(imgs[k]||imgs['*']));
+  if(!lista.length)return el('logArt','Marque COV ou LGO e envie uma imagem.','er');
+  for(const k of lista){
+    const blob=await new Promise(r=>$('v_'+k).toBlob(r,'image/png'));
+    if(artDir)await writeFile(artDir,`${id}_${k}.png`,blob);
+    else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${id}_${k}.png`;a.click()}
+  }
+  el('logArt',`Salvo: ${lista.join(', ')}`,'ok');
+}
+
+async function lerApps(){
+  appsInfo=[];if(!raiz)return;
+  let d;try{d=await raiz.getDirectoryHandle('APPS')}catch(e){return}
+  for await(const [nome,h] of d.entries()){
+    if(h.kind!=='directory')continue;
+    let titulo=nome,boot='';
+    try{
+      const txt=await (await (await h.getFileHandle('title.cfg')).getFile()).text();
+      const mt=txt.match(/^title\s*=\s*(.+)$/mi);if(mt)titulo=mt[1].trim();
+      const mb=txt.match(/^boot\s*=\s*(.+)$/mi);if(mb)boot=mb[1].trim();
+    }catch(e){}
+    appsInfo.push({pasta:nome,titulo,boot});
+  }
+  appsInfo.sort((a,b)=>a.titulo.localeCompare(b.titulo));
+}
+
+async function adicionarApp(){
+  if(!raiz)return el('logApp','Selecione a pasta do OPL primeiro.','er');
+  const fi=$('elfFile');if(!fi.files.length)return el('logApp','Selecione um arquivo .ELF.','er');
+  const elf=fi.files[0],nomeArq=elf.name,base=nomeArq.replace(/\.elf$/i,'');
+  const pasta=base.toUpperCase().replace(/[^A-Z0-9_\-]/g,'_');
+  const titulo=$('appNome').value.trim()||base;
+  const argv1=$('appArgv').value.trim();
+  const appsDir=await raiz.getDirectoryHandle('APPS',{create:true});
+  const appDir=await appsDir.getDirectoryHandle(pasta,{create:true});
+  await writeFile(appDir,nomeArq,elf);
+  let cfg=`title=${titulo}\nboot=${nomeArq}\n`;
+  if(argv1)cfg+=`argv1=${argv1}\n`;
+  await writeFile(appDir,'title.cfg',cfg);
+  el('logApp',`APP "${titulo}" criado em APPS/${pasta}.`,'ok');
+  fi.value='';$('appNome').value='';$('appArgv').value='';
+  await lerApps();mudarAlvo();
+}
+</script>
+</body>
+</html>
